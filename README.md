@@ -80,6 +80,32 @@ This is a public repository. Keep the application limited to releasable leader-d
 
 Do not commit credentials, access tokens, passwords, private server information, CUI, nonpublic operational information, or other sensitive material.
 
+## Vercel Observability
+
+The trainer includes first-party Vercel Web Analytics and Speed Insights script hooks.
+
+In the Vercel project dashboard, enable:
+
+- **Web Analytics** for page views, device/browser breakdowns, and the trainer's custom usage events.
+- **Speed Insights** for Core Web Vitals and real-user performance measurements.
+
+Privacy-safe custom events currently cover:
+
+- TDM scenario start and completion
+- Reports & Requests start and completion
+- Call for Fire Trainer start and completion
+- Progress import/export
+- Built-in system-check outcome
+
+Telemetry is intentionally limited to fixed application metadata such as module/scenario ID, difficulty, build, score, duration, and diagnostic counts. Do **not** add free-text leader responses, report contents, CFFT transmissions, coordinates, imported/exported progress data, or other user-entered content to analytics events.
+
+The observability scripts use Vercel's first-party deployment paths:
+
+- `/_vercel/insights/script.js`
+- `/_vercel/speed-insights/script.js`
+
+These endpoints are available on Vercel deployments when the corresponding product is enabled. Local test runs may return 404 for these Vercel-only script paths without affecting trainer functionality.
+
 ## Release Philosophy
 
 Changes should be small, reviewable, and reversible. Infrastructure, UI, scenario content, analytics, PWA support, and larger architectural changes should normally be handled as separate pull requests so each change can be tested independently.
