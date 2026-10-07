@@ -1,0 +1,14 @@
+{
+  "name": "mpc-decision-trainer",
+  "version": "11.10.0-rc.1",
+  "private": true,
+  "description": "Browser-based tactical decision trainer for MPC leader development.",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "test:e2e": "playwright test",
+    "test": "npm run validate && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0"
+  }
+}
