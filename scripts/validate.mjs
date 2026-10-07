@@ -63,7 +63,7 @@ requireMatch("TRAINER_BUILD constant is missing", /const\s+TRAINER_BUILD\s*=/);
 requireMatch("Progress persistence no longer references localStorage", /localStorage/);
 requireMatch("TDM scenario data is missing", /const\s+DATA\s*=/);
 
-if (/<<<<<<<|=======|>>>>>>>/.test(html)) {
+if (/^(<<<<<<< .+|=======|>>>>>>> .+)$/m.test(html)) {
   failures.push("Unresolved merge-conflict marker found in index.html");
 }
 
