@@ -4832,7 +4832,11 @@ function trackTrainingEvent(name,data={}){
   if(typeof window.va!=="function") return;
   const safeData={build:TRAINER_BUILD};
   Object.entries(data||{}).forEach(([key,value])=>{
-    if(["string","number","boolean"].includes(typeof value) && value!=="" && Number.isFinite(value)!==false){
+    if(typeof value==="number"){
+      if(Number.isFinite(value)) safeData[key]=value;
+    }else if(typeof value==="string"){
+      if(value) safeData[key]=value;
+    }else if(typeof value==="boolean"){
       safeData[key]=value;
     }
   });
