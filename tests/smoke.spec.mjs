@@ -54,3 +54,50 @@ test("progress export remains available", async ({ page }) => {
 
   expect(download.suggestedFilename()).toMatch(/MPC_Decision_Trainer_Progress.*\.json/i);
 });
+
+
+test("TDM telemetry records approved metadata without free-text responses", async ({ page }) => {
+  await page.locator("#openTdmModule").click();
+  await page.locator("#formationGrid .formation-card button").first().click();
+  await page.locator("#scenarioGrid .scenario-card button").first().click();
+  await page.locator('[data-mode="easy"]').click();
+
+  const telemetry = await page.evaluate(() => {
+    const queue = window.vaq || [];
+    const match = queue.find(
+      (entry) =>
+        Array.isArray(entry) &&
+        entry[0] === "event" &&
+        entry[1]?.name === "tdm_scenario_started"
+    );
+    return match?.[1] || null;
+  });
+
+  expect(telemetry).not.toBeNull();
+  expect(telemetry.name).toBe("tdm_scenario_started");
+  expect(telemetry.data).toEqual(
+    expect.objectContaining({
+      build: expect.any(String),
+      scenario: expect.any(String),
+      scenarioNumber: expect.any(String),
+      formation: expect.any(String),
+      mode: "easy"
+    })
+  );
+
+  const keys = Object.keys(telemetry.data);
+  expect(keys).toEqual(
+    expect.arrayContaining(["build", "scenario", "scenarioNumber", "formation", "mode"])
+  );
+  expect(keys).not.toEqual(
+    expect.arrayContaining([
+      "leaderAction",
+      "rationale",
+      "riskTrigger",
+      "reportText",
+      "cfftText",
+      "coordinates",
+      "progress"
+    ])
+  );
+});
