@@ -4821,6 +4821,24 @@ const PROGRESS_KEY="mpcDecisionTrainer.progress";
 const PROGRESS_SCHEMA_VERSION=3;
 const TRAINER_BUILD="11.10-rc1";
 const MAX_ATTEMPT_HISTORY=10;
+
+/*
+  Privacy-safe product telemetry.
+  Only fixed application metadata and numeric scores/durations are sent.
+  Never pass free-text leader responses, report/CFFT contents, coordinates,
+  imported/exported progress data, or other user-entered content here.
+*/
+function trackTrainingEvent(name,data={}){
+  if(typeof window.va!=="function") return;
+  const safeData={build:TRAINER_BUILD};
+  Object.entries(data||{}).forEach(([key,value])=>{
+    if(["string","number","boolean"].includes(typeof value) && value!=="" && Number.isFinite(value)!==false){
+      safeData[key]=value;
+    }
+  });
+  window.va("event",{name,data:safeData});
+}
+
 let savedProgress=loadProgress();
 
 function newProgressStore(){
@@ -5196,7 +5214,12 @@ function showDiagnostics(){
   $("menuBtn").classList.add("hidden");
   $("headerSub").textContent="Tester Tools · System Check";
   show("screen-diagnostics");
-  runTrainerDiagnostics();
+  const result=runTrainerDiagnostics();
+  trackTrainingEvent("system_check_completed",{
+    pass:result?.pass||0,
+    warning:result?.warn||0,
+    fail:result?.fail||0
+  });
   window.scrollTo(0,0);
 }
 
@@ -5351,6 +5374,7 @@ function renderTrend(scenarioId,mode,currentScore,runId){
   el.innerHTML=`Previous ${modeName()}: ${previous.score}/100 · Current: ${currentScore}/100 · <span class="${cls}">Change: ${sign}${delta}</span> · Best: ${best}/100`;
 }
 function exportProgress(){
+  trackTrainingEvent("progress_exported",{schema:PROGRESS_SCHEMA_VERSION});
   const blob=new Blob([JSON.stringify(savedProgress,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
@@ -5377,6 +5401,7 @@ function importProgressFile(file){
       renderFormations();
       if(selectedFormation) renderMenu("all");
       renderGlobalProgress();
+      trackTrainingEvent("progress_imported",{schema:PROGRESS_SCHEMA_VERSION});
       alert("Progress imported.");
     }catch(e){
       alert("Could not import this progress file.");
@@ -7378,6 +7403,13 @@ function showCfftMenu(){
 function startCfftScenario(id,mode){
   activeCfftScenario=CFFT_SCENARIOS.find(s=>s.id===id);
   activeCfftMode=mode;
+  if(activeCfftScenario){
+    trackTrainingEvent("cfft_started",{
+      scenario:activeCfftScenario.id,
+      scenarioNumber:activeCfftScenario.number,
+      mode
+    });
+  }
   activeCfftPhase="initial";
   cfftMissionValues={};
   setCfftPhaseProgress("initial");
@@ -7532,6 +7564,15 @@ function submitCfftMission(){
   const elapsed=stopCfftTimer();
   const r=evaluateCfft();
   const saved=saveCfftAttempt(activeCfftScenario,activeCfftMode,r.score,r.values,elapsed);
+  if(saved && !saved.duplicate){
+    trackTrainingEvent("cfft_completed",{
+      scenario:activeCfftScenario.id,
+      scenarioNumber:activeCfftScenario.number,
+      mode:activeCfftMode,
+      score:r.score,
+      durationSeconds:Math.round(elapsed/1000)
+    });
+  }
   setCfftPhaseProgress("aar");
   $("cfftAarTitle").textContent=`${activeCfftScenario.number} · ${activeCfftScenario.title} · ${activeCfftMode.toUpperCase()}`;
   $("cfftAarScore").textContent=r.score;
@@ -7907,6 +7948,14 @@ function populateReportTypes(){
 function startReportExercise(id,mode,mixed=false){
   activeReportExercise=REPORT_EXERCISES.find(e=>e.id===id);
   activeReportMode=mode;
+  if(activeReportExercise){
+    trackTrainingEvent("report_started",{
+      exercise:activeReportExercise.id,
+      exerciseNumber:activeReportExercise.number,
+      mode,
+      mixed:Boolean(mixed)
+    });
+  }
   activeReportMixed=mixed;
   activeReportType="";
   lastReportSubmission=null;
@@ -8090,6 +8139,16 @@ function submitReportExercise(){
     criticalErrors:r.criticalErrors||[]
   };
   const saved=saveReportScore(activeReportExercise.id,activeReportMode,r.total,attemptRecord);
+  if(saved && !saved.duplicate){
+    trackTrainingEvent("report_completed",{
+      exercise:activeReportExercise.id,
+      exerciseNumber:activeReportExercise.number,
+      mode:activeReportMode,
+      mixed:Boolean(activeReportMixed),
+      score:r.total,
+      durationSeconds:Math.round(elapsed/1000)
+    });
+  }
 
   const revealPrefix=activeReportMixed?`${activeReportExercise.number} · `:"";
   $("reportAarTitle").textContent=`${revealPrefix}${activeReportExercise.title} · ${activeReportMode.toUpperCase()}`;
@@ -8511,6 +8570,12 @@ document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",(
 
 function startMode(mode){
   trainingMode=mode; history=[]; current=0; selectedChoice=null; currentRunId=makeRunId(selectedScenario.id,mode);
+  trackTrainingEvent("tdm_scenario_started",{
+    scenario:selectedScenario.id,
+    scenarioNumber:selectedScenario.number,
+    formation:selectedScenario.formation,
+    mode
+  });
   tdmSnapshots=[];aarReplayIndex=0;aarReplayHistory=null;activeDecision=null;mapInfoAge=[0,0,0];
   facilitatorMode=false; facilitatorVariantId="";
   selectRunVariant();
@@ -9676,6 +9741,15 @@ function showAAR(){
   $("overallBar").style.width=(max?pct:0)+"%";
   $("scoreLabel").textContent=!max?"Automated contextual rubric":pct>=90?"Strong training alignment":pct>=80?"Sound training alignment":pct>=70?"Generally aligned":pct>=60?"Mixed training alignment":"Review against doctrine / SOP";
   const saved=saveMissionScore(selectedScenario,trainingMode,pct,currentRunId,history);
+  if(saved && !saved.duplicate){
+    trackTrainingEvent("tdm_scenario_completed",{
+      scenario:selectedScenario.id,
+      scenarioNumber:selectedScenario.number,
+      formation:selectedScenario.formation,
+      mode:trainingMode,
+      score:pct
+    });
+  }
   const banner=$("savedScoreBanner");
   if(saved){
     banner.classList.remove("hidden");
@@ -9846,5 +9920,14 @@ renderTopLevelModules();
 renderGlobalProgress();
 show("screen-formation");
 </script>
+
+<!-- Vercel first-party observability. These endpoints are served by Vercel
+     when Web Analytics and Speed Insights are enabled for the project. -->
+<script>
+  window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};
+  window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments);};
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>
