@@ -112,7 +112,7 @@ const app = createServer(async (req, res) => {
       sessions.set(id, {id, scenarioId:body.scenarioId, seq:0, events:[], subscribers:new Set()});
       return json(res, 201, {sessionId:id, scenarioId:body.scenarioId});
     }
-    const m = /^\\/v1\\/sessions\\/([A-Za-z0-9_-]+)(?:\\/(events|stream|inject|game-event))?$/.exec(url.pathname);
+    const m = new RegExp("^/v1/sessions/([A-Za-z0-9_-]+)(?:/(events|stream|inject|game-event))?$").exec(url.pathname);
     if (!m) return json(res, 404, {error:"Unknown endpoint"});
     const session = sessions.get(m[1]);
     if (!session) return json(res, 404, {error:"Unknown session"});
