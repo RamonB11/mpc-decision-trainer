@@ -48,6 +48,7 @@ test("TDM can launch through the first decision and consequence", async ({ page 
 });
 
 test("progress export remains available", async ({ page }) => {
+  await page.getByText("Saved progress & data controls").click();
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#exportProgressBtn").click();
   const download = await downloadPromise;
