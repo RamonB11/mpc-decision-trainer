@@ -36,6 +36,8 @@ The launch refuses missing or duplicated tokens.
 
 ## 2. Create a game session (EXCON)
 
+**No-command-line option:** open `/integrations/trop-bridge/excon.html` on the Vercel feature-branch preview. Enter the secure bridge URL and EXCON token (memory only), select a scenario, and click **Create session**. The same page can release/withhold synthetic map contacts and refresh the event journal. Never paste the EXCON token into the player view.
+
 Use a scenario ID present in the trainer, for example `recon-continuous`.
 
 ```bash
