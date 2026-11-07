@@ -91,6 +91,7 @@ TDG_TAK_SERVER_NAME=(TLS certificate DNS name)
 TDG_TAK_PORT=8089
 TDG_TAK_CERT_FILE=(private client certificate path)
 TDG_TAK_KEY_FILE=(private client key path)
+TDG_TAK_KEY_PASSPHRASE=(only if the TAK-generated PEM private key is encrypted; keep secret)
 TDG_TAK_CA_FILE=(private trust chain path)
 ```
 
