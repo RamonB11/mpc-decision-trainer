@@ -72,7 +72,8 @@
       event.preventDefault();
       const data = new FormData(form);
       const error = dialog.querySelector("#tdg-pair-error");
-      const raw = String(data.get("url") || "").replace(/\\/$/, "");
+      const inputUrl = String(data.get("url") || "");
+      const raw = inputUrl.endsWith("/") ? inputUrl.slice(0, -1) : inputUrl;
       let url;
       try {
         const parsed = new URL(raw);
