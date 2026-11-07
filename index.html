@@ -9933,8 +9933,8 @@ show("screen-formation");
 <!-- Vercel first-party observability. These endpoints are served by Vercel
      when Web Analytics and Speed Insights are enabled for the project. -->
 <script>
-  window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};
-  window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments);};
+  window.va=window.va||function(){(window.vaq=window.vaq||[]).push(Array.from(arguments));};
+  window.si=window.si||function(){(window.siq=window.siq||[]).push(Array.from(arguments));};
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
