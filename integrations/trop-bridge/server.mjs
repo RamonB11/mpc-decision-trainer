@@ -75,6 +75,7 @@ async function publishCot(xml) {
     port:Number(process.env.TDG_TAK_PORT || 8089),
     cert:readFileSync(process.env.TDG_TAK_CERT_FILE),
     key:readFileSync(process.env.TDG_TAK_KEY_FILE),
+    ...(process.env.TDG_TAK_KEY_PASSPHRASE ? {passphrase:process.env.TDG_TAK_KEY_PASSPHRASE} : {}),
     ca:readFileSync(process.env.TDG_TAK_CA_FILE),
     rejectUnauthorized:true
   };
