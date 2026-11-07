@@ -85,6 +85,7 @@ export TDG_TAK_PORT="8089"
 export TDG_TAK_CA_FILE="/private/ca.pem"
 export TDG_TAK_CERT_FILE="/private/bridge-client.crt"
 export TDG_TAK_KEY_FILE="/private/bridge-client.key"
+# If key header says ENCRYPTED PRIVATE KEY, set TDG_TAK_KEY_PASSPHRASE securely in service EnvironmentFile
 ```
 
 Restart the bridge with the same three role tokens. In TROP, connect to that training TAK Server using a **separate device credential**; never reuse the bridge's certificate on the iPhone. Avoid developer-operated free/public TAK servers for any nonpublic data.
