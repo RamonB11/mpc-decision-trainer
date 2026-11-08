@@ -34,6 +34,12 @@ The bridge listens on `127.0.0.1:8787` by default. For a remote preview, use an 
 
 The launch refuses missing or duplicated tokens.
 
+## Private EXCON console over SSH (preferred for desktop testing)
+
+Keep a Windows terminal running `ssh -N -L 8787:127.0.0.1:8787 root@YOUR_VPS_IP` (or use a non-root SSH account when configured). Open `http://127.0.0.1:8787/excon` on the **same Windows desktop**, then use Bridge URL `http://127.0.0.1:8787`. The page and API use the same origin, so this avoids mixed-content restrictions from the HTTPS Vercel preview. The server stays bound to loopback; no new public port is needed. The EXCON bearer token is stored in `/etc/tdg-bridge.env` on the VPS; enter it privately, never share it or include it in screenshots. The `excon.html` file must be readable by the `tdg-bridge` service account (permissions 644 in a traversable directory).
+
+The browser console is a convenience UI, not a replacement for bearer-token authentication. Leave `TDG_PUBLISH_ENABLED=0` until group isolation, credential rotation and live TAK acceptance are completed.
+
 ## 2. Create a game session (EXCON)
 
 **No-command-line option:** open `/integrations/trop-bridge/excon.html` on the Vercel feature-branch preview. Enter the secure bridge URL and EXCON token (memory only), select a scenario, and click **Create session**. The same page can release/withhold synthetic map contacts and refresh the event journal. Never paste the EXCON token into the player view.
