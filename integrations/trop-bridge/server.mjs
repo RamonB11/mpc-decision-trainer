@@ -19,6 +19,7 @@ const ORIGIN = process.env.TDG_ALLOWED_ORIGIN || "";
 const PUBLISH = process.env.TDG_PUBLISH_ENABLED === "1";
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const sessions = new Map();
+const EXCON_HTML = readFileSync(new URL("./excon.html", import.meta.url));
 
 function equalToken(a, b) {
   const left = Buffer.from(a), right = Buffer.from(b);
@@ -36,7 +37,8 @@ function json(response, status, data) {
 }
 function setCors(request, response) {
   const origin = request.headers.origin;
-  if (origin && (!ORIGIN || origin !== ORIGIN)) return false;
+  const localOrigins = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`]);
+  if (origin && !localOrigins.has(origin) && (!ORIGIN || origin !== ORIGIN)) return false;
   if (origin) {
     response.setHeader("access-control-allow-origin", origin);
     response.setHeader("vary", "Origin");
@@ -103,6 +105,11 @@ const app = createServer(async (req, res) => {
     if (!setCors(req, res)) return json(res, 403, {error:"Origin is not allowed"});
     if (req.method === "OPTIONS") {res.writeHead(204); return res.end();}
     const url = new URL(req.url, "http://localhost");
+    if (req.method === "GET" && (url.pathname === "/excon" || url.pathname === "/excon/")) {
+      res.writeHead(200, {"content-type":"text/html; charset=utf-8", "cache-control":"no-store",
+        "x-content-type-options":"nosniff", "x-frame-options":"DENY", "referrer-policy":"no-referrer"});
+      return res.end(EXCON_HTML);
+    }
     if (url.pathname === "/health") return json(res, 200, {ok:true, takPublishEnabled:PUBLISH, sessions:sessions.size});
     const role = roleFor(req);
     if (url.pathname === "/v1/sessions" && req.method === "POST") {
