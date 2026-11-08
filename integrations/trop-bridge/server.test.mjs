@@ -36,6 +36,17 @@ test("EXCON sessions enforce authorization and withhold ground truth", {timeout:
       await sleep(100);
     }
     assert.equal(ready,true,"Bridge did not start: "+errors);
+    const consolePage=await fetch(base+"/excon");
+    assert.equal(consolePage.status,200);
+    assert.match(await consolePage.text(), /TROP Lab \/ MPC Decision Trainer/);
+    const sameOrigin=await fetch(base+"/v1/sessions",{method:"POST",
+      headers:{"Authorization":"Bearer "+TOKENS.excon,"Content-Type":"application/json","Origin":base},
+      body:JSON.stringify({scenarioId:"recon-continuous"})});
+    assert.equal(sameOrigin.status,201);
+    const externalOrigin=await fetch(base+"/v1/sessions",{method:"POST",
+      headers:{"Authorization":"Bearer "+TOKENS.excon,"Content-Type":"application/json","Origin":"https://untrusted.example"},
+      body:JSON.stringify({scenarioId:"recon-continuous"})});
+    assert.equal(externalOrigin.status,403);
     const call=async (path,role,method="GET",payload) => {
       const response=await fetch(base+path,{
         method,headers:{"Authorization":"Bearer "+(TOKENS[role]||"invalid"),"Content-Type":"application/json"},
