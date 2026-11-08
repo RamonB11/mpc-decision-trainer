@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   validate-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -33,6 +33,9 @@ jobs:
 
       - name: Validate trainer structure
         run: npm run validate
+
+      - name: Validate TROP training bridge
+        run: npm run test:bridge
 
       - name: Run browser smoke tests
         run: npm run test:e2e

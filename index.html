@@ -8600,6 +8600,7 @@ function startMode(mode){
   updateTerrainLogicPanel();
   $("headerSub").textContent=`${selectedScenario.number} · ${selectedScenario.title} · ${modeName()}`;
   show("screen-intro"); window.scrollTo(0,0);
+  window.dispatchEvent(new CustomEvent("tdg:scenario-started",{detail:{scenarioId:selectedScenario.id,runId:currentRunId,mode:trainingMode}}));
 }
 
 
@@ -9729,6 +9730,7 @@ function commit(){
   };
   applyEffect(c.effect,d.time);
   captureTDMSnapshot("consequence",d.label,d.time,current,finalChoice,`${c.result} ${c.intel}`);
+  window.dispatchEvent(new CustomEvent("tdg:decision-committed",{detail:{scenarioId:selectedScenario.id,runId:currentRunId,mode:trainingMode,decisionIndex:current}}));
   $("progressBar").style.width=`${Math.round(((current+1)/selectedScenario.decisions.length)*100)}%`;
   showInlineConsequence(d,c);
 }
@@ -9785,6 +9787,7 @@ function showAAR(){
   aarReplayHistory=null;
   renderAARReplay(0);
   window.scrollTo(0,0);
+  window.dispatchEvent(new CustomEvent("tdg:aar-opened",{detail:{scenarioId:selectedScenario.id,runId:currentRunId,mode:trainingMode}}));
 }
 
 function renderRetryDecisionButtons(){
@@ -9925,11 +9928,13 @@ renderGlobalProgress();
 show("screen-formation");
 </script>
 
+<script defer src="/integrations/trop-bridge/client.js"></script>
+
 <!-- Vercel first-party observability. These endpoints are served by Vercel
      when Web Analytics and Speed Insights are enabled for the project. -->
 <script>
-  window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};
-  window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments);};
+  window.va=window.va||function(){(window.vaq=window.vaq||[]).push(Array.from(arguments));};
+  window.si=window.si||function(){(window.siq=window.siq||[]).push(Array.from(arguments));};
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>

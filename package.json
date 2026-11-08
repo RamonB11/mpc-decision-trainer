@@ -6,7 +6,8 @@
   "scripts": {
     "validate": "node scripts/validate.mjs",
     "test:e2e": "playwright test",
-    "test": "npm run validate && npm run test:e2e"
+    "test": "npm run validate && npm run test:bridge && npm run test:e2e",
+    "test:bridge": "node --test integrations/trop-bridge/*.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.0"

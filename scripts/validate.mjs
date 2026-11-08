@@ -56,19 +56,22 @@ const requiredFunctions = [
 ];
 
 for (const fn of requiredFunctions) {
-  requireMatch(`Missing required function ${fn}()`, new RegExp(`function\\s+${fn}\\s*\\(`));
+  if (!html.includes("function " + fn + "(")) failures.push("Missing required function " + fn + "()");
 }
 
-requireMatch("TRAINER_BUILD constant is missing", /const\s+TRAINER_BUILD\s*=/);
-requireMatch("Progress persistence no longer references localStorage", /localStorage/);
-requireMatch("TDM scenario data is missing", /const\s+DATA\s*=/);
-requireMatch("Telemetry helper is missing", /function\\s+trackTrainingEvent\\s*\\(/);
-requireMatch("Vercel Web Analytics script is missing", /\\/_vercel\\/insights\\/script\\.js/);
-requireMatch("Vercel Speed Insights script is missing", /\\/_vercel\\/speed-insights\\/script\\.js/);
-requireMatch("TDM start telemetry is missing", /tdm_scenario_started/);
-requireMatch("TDM completion telemetry is missing", /tdm_scenario_completed/);
-requireMatch("Reports telemetry is missing", /report_completed/);
-requireMatch("CFFT telemetry is missing", /cfft_completed/);
+function requireText(description, value) {
+  if (!html.includes(value)) failures.push(description);
+}
+requireText("TRAINER_BUILD constant is missing", "const TRAINER_BUILD");
+requireText("Progress persistence no longer references localStorage", "localStorage");
+requireText("TDM scenario data is missing", "const DATA");
+requireText("Telemetry helper is missing", "function trackTrainingEvent(");
+requireText("Vercel Web Analytics script is missing", "/_vercel/insights/script.js");
+requireText("Vercel Speed Insights script is missing", "/_vercel/speed-insights/script.js");
+requireText("TDM start telemetry is missing", "tdm_scenario_started");
+requireText("TDM completion telemetry is missing", "tdm_scenario_completed");
+requireText("Reports telemetry is missing", "report_completed");
+requireText("CFFT telemetry is missing", "cfft_completed");
 
 if (/^(<<<<<<< .+|=======|>>>>>>> .+)$/m.test(html)) {
   failures.push("Unresolved merge-conflict marker found in index.html");

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TROP Lab — EXCON</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;padding:18px;background:#0b1013;color:#e8edef;font:14px/1.5 system-ui,Arial,sans-serif}
+main{max-width:940px;margin:auto}h1{margin:0;font-size:24px}h2{font-size:17px;margin:0 0 12px}
+p{color:#aab6bc;margin:8px 0 14px}.sub{color:#d8b35b;text-transform:uppercase;font-size:11px;font-weight:800;letter-spacing:.1em}
+.panel{background:#172026;border:1px solid #344148;border-radius:12px;padding:18px;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-size:12px;color:#b4c3ca;font-weight:700}
+input,select{display:block;width:100%;margin-top:5px;padding:10px;color:#fff;background:#0b1013;border:1px solid #536069;border-radius:8px;font:inherit}
+button{background:#d8b35b;border:1px solid #d8b35b;color:#111;font-weight:800;border-radius:8px;padding:10px 12px;cursor:pointer;min-height:42px}
+button.secondary{background:transparent;color:#e8edef;border-color:#536069}button:disabled{opacity:.55}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}code{color:#c5dced}
+#journal{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1013;border:1px solid #344148;border-radius:10px;padding:12px;max-height:380px;overflow:auto;font:12px/1.6 ui-monospace,monospace}
+#status{font-weight:700;color:#d8b35b}
+@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<p class="sub">Simulation only · EXCON console</p>
+<h1>TROP Lab / MPC Decision Trainer</h1>
+<p>Control a synthetic multiplayer exercise session and release test map contacts. Real-world unit data and operational TAK credentials are prohibited.</p>
+
+<section class="panel">
+<h2>1. Connect to the private training bridge</h2>
+<div class="grid">
+<label>Bridge URL<input id="url" type="url" placeholder="https://training-bridge.example" autocomplete="off"></label>
+<label>EXCON token<input id="token" type="password" placeholder="EXCON token from server administrator" autocomplete="off"></label>
+</div>
+<div class="actions"><button id="connect">Connect</button><span id="status" role="status">Disconnected</span></div>
+</section>
+
+<section class="panel">
+<h2>2. Create an exercise session</h2>
+<div class="grid">
+<label>Trainer scenario ID<input id="scenario" value="recon-continuous"></label>
+<label>Active session ID<input id="session" placeholder="Created after Connect" readonly></label>
+</div>
+<div class="actions"><button id="create">Create session</button><button id="copy" class="secondary">Copy pairing details</button></div>
+<p>Give the player the session ID, scenario ID, and their **separate player token**. Do not give them the EXCON token.</p>
+</section>
+
+<section class="panel">
+<h2>3. Release or withhold a simulated contact</h2>
+<div class="grid">
+<label>Marker ID<input id="object" value="contact_001"></label>
+<label>Displayed callsign<input id="callsign" value="SIM CONTACT 001"></label>
+<label>Affiliation<select id="affiliation"><option>unknown</option><option>friendly</option><option>hostile</option><option>neutral</option></select></label>
+<label>Visibility<select id="visibility"><option value="player">Release to player / TAK</option><option value="excon">EXCON only (do not publish)</option></select></label>
+<label>Latitude (fictional test position)<input id="lat" type="number" min="-90" max="90" step="any" value="39"></label>
+<label>Longitude (fictional test position)<input id="lon" type="number" min="-180" max="180" step="any" value="-86.5"></label>
+</div>
+<div class="actions"><button id="inject">Send synthetic inject</button><span id="delivery"></span></div>
+<p>The bridge defaults to dry-run mode. Even a released inject does not reach TROP unless TAK publishing is explicitly enabled with valid mTLS credentials.</p>
+</section>
+
+<section class="panel">
+<h2>4. Event journal / AAR</h2>
+<div class="actions"><button id="refresh" class="secondary">Refresh AAR journal</button><button id="watch" class="secondary">Start live monitoring</button></div>
+<p>Records scenario start, decision commits, AAR opening, and EXCON injects. This initial pilot stores events only in server memory.</p>
+<pre id="journal">No exercise session connected.</pre>
+</section>
+</main>
+<script>
+(() => {
+  "use strict";
+  let auth = null, poll = null;
+  const $ = (id) => document.getElementById(id);
+  const session = () => $("session").value;
+  const status = (s) => $("status").textContent = s;
+  async function request(path, method = "GET", body) {
+    if (!auth) throw new Error("Connect to a training bridge first");
+    const r = await fetch(auth.url + path, {
+      method,
+      headers:{"authorization":"Bearer " + auth.token,"content-type":"application/json"},
+      body:body === undefined ? undefined : JSON.stringify(body),
+      cache:"no-store"
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Bridge request failed (" + r.status + ")");
+    return data;
+  }
+  async function action(fn) {
+    try {await fn();}catch(e){status("Error — " + e.message);}
+  }
+  $("connect").addEventListener("click", () => action(async () => {
+    const raw = $("url").value.trim();
+    const u = new URL(raw);
+    if (u.protocol !== "https:" && !(u.protocol === "http:" && ["127.0.0.1","localhost"].includes(u.hostname))) {
+      throw new Error("Only HTTPS or localhost allowed");
+    }
+    if (u.username || u.password || u.search || u.hash) throw new Error("Enter only a bridge origin");
+    const token = $("token").value;
+    if (token.length < 24) throw new Error("A valid EXCON token is required");
+    const result = await fetch(u.origin + "/health");
+    if (!result.ok) throw new Error("Bridge is unavailable");
+    const health = await result.json();
+    auth = {url:u.origin,token};
+    $("token").value = "";
+    status(health.takPublishEnabled ? "Connected — TAK publishing enabled" : "Connected — CoT dry-run only");
+  }));
+  $("create").addEventListener("click", () => action(async () => {
+    const result = await request("/v1/sessions","POST",{scenarioId:$("scenario").value.trim()});
+    $("session").value=result.sessionId;
+    status("Session ready — " + result.sessionId);
+    await refresh();
+  }));
+  $("copy").addEventListener("click", () => action(async () => {
+    if (!session()) throw new Error("Create a session first");
+    await navigator.clipboard.writeText("Bridge: " + auth.url + "\nSession: " + session() + "\nScenario: " + $("scenario").value + "\nPlayer token: request separately from EXCON");
+    status("Pairing information copied (no EXCON token)");
+  }));
+  $("inject").addEventListener("click", () => action(async () => {
+    if (!session()) throw new Error("Create a session first");
+    const body={
+      objectId:$("object").value.trim(),callsign:$("callsign").value.trim(),
+      affiliation:$("affiliation").value,visibility:$("visibility").value,
+      lat:Number($("lat").value),lon:Number($("lon").value)
+    };
+    const result=await request("/v1/sessions/"+session()+"/inject","POST",body);
+    $("delivery").textContent="Delivery: " + result.event.delivery;
+    await refresh();
+  }));
+  async function refresh() {
+    if (!session()) throw new Error("Create a session first");
+    const data=await request("/v1/sessions/"+session()+"/events");
+    $("journal").textContent=JSON.stringify(data.events,null,2);
+  }
+  $("refresh").addEventListener("click", () => action(refresh));
+  $("watch").addEventListener("click", () => {
+    if (poll) {
+      clearInterval(poll);poll=null;$("watch").textContent="Start live monitoring";
+    } else {
+      if (!auth || !session()) {status("Create an exercise first");return;}
+      poll=setInterval(() => {void action(refresh);},3000);
+      $("watch").textContent="Stop monitoring";
+      void action(refresh);
+    }
+  });
+  window.addEventListener("pagehide",()=>{if(poll)clearInterval(poll);});
+})();
+</script>
+</body>
+</html>
